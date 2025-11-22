@@ -6,7 +6,7 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
-import { db } from "../../../firebaseConfig";
+import { db, auth } from "../../../firebaseConfig";
 
 type Coords = { latitude: number; longitude: number };
 type Driver = { id: string; name?: string; status?: string; latitude?: number; longitude?: number; currentBookingId?: string };
@@ -15,7 +15,7 @@ export default function BookingForm() {
   const router = useRouter();
   const [location, setLocation] = useState<Coords | null>(null);
   const [assignedDriverId, setAssignedDriverId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // <-- loading state
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phoneCode: "+254",
@@ -56,7 +56,7 @@ export default function BookingForm() {
       return;
     }
 
-    setLoading(true); // <-- start loading
+    setLoading(true);
 
     try {
       let coords: Coords | null = null;
@@ -77,6 +77,7 @@ export default function BookingForm() {
 
       const booking = {
         ...formData,
+        clientId: auth.currentUser?.uid, // <-- added clientId
         fullPhone: `${formData.phoneCode}${formData.phone}`,
         mapsLink,
         status: "requested",
@@ -84,6 +85,8 @@ export default function BookingForm() {
         location: coords,
         pickupCoords: locationServices.includes(formData.service) ? null : coords,
       };
+
+      console.log("BOOKING SENT TO FIRESTORE:", booking);
 
       const docRef = await addDoc(collection(db, "bookings"), booking);
 
@@ -112,7 +115,7 @@ export default function BookingForm() {
     } catch (err) {
       Alert.alert("Error", `Booking failed: ${err instanceof Error ? err.message : JSON.stringify(err)}`);
     } finally {
-      setLoading(false); // <-- stop loading
+      setLoading(false);
     }
   };
 

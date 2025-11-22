@@ -1,7 +1,8 @@
+// app/booking/MapScreen.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, query, collection, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../../firebaseConfig";
 import haversine from "haversine-distance";
 
@@ -18,21 +19,23 @@ export default function MapScreen() {
   const user = auth.currentUser;
 
   let unsubscribeDriver: (() => void) | null = null;
+  let unsubscribeBooking: (() => void) | null = null;
 
-  // Fetch booking and target location
   useEffect(() => {
     if (!user) return;
 
-    let unsubscribeBooking: (() => void) | null = null;
-
     const initBookingListener = async () => {
       try {
-        const clientRef = doc(db, "clients", user.uid);
-        const clientSnap = await getDoc(clientRef);
-        if (!clientSnap.exists()) return;
+        // Find the latest booking for this client
+        const bookingsQuery = query(
+          collection(db, "bookings"),
+          where("clientId", "==", user.uid),
+          where("status", "in", ["requested", "assigned"])
+        );
+        const bookingSnap = await getDocs(bookingsQuery);
+        if (bookingSnap.empty) return;
 
-        const bookingId = clientSnap.data()?.currentBookingId;
-        if (!bookingId) return;
+        const bookingId = bookingSnap.docs[0].id;
 
         const bookingRef = doc(db, "bookings", bookingId);
         unsubscribeBooking = onSnapshot(bookingRef, (bookingSnap) => {
@@ -58,11 +61,10 @@ export default function MapScreen() {
     };
   }, [user]);
 
-  // Driver listener
   const initDriverListener = (driverId: string, coords: Coords) => {
     const driverRef = doc(db, "drivers", driverId);
 
-    if (unsubscribeDriver) unsubscribeDriver(); // remove previous listener
+    if (unsubscribeDriver) unsubscribeDriver();
 
     unsubscribeDriver = onSnapshot(driverRef, (driverSnap) => {
       const data = driverSnap.data() as Driver;
@@ -71,7 +73,6 @@ export default function MapScreen() {
       setDriverLocation({ latitude: data.latitude, longitude: data.longitude, lastUpdated: Date.now() });
       setLoading(false);
 
-      // Fit map to driver and target
       if (mapRef.current && coords) {
         mapRef.current.fitToCoordinates(
           [
@@ -82,13 +83,12 @@ export default function MapScreen() {
         );
       }
 
-      // Calculate ETA
       if (coords) {
         const distanceMeters = haversine(
           { latitude: data.latitude, longitude: data.longitude },
           { latitude: coords.latitude, longitude: coords.longitude }
         );
-        const averageSpeed = 40 * 1000 / 3600; // 40 km/h in m/s
+        const averageSpeed = 40 * 1000 / 3600;
         const minutes = Math.round(distanceMeters / averageSpeed / 60);
         setEta(minutes < 1 ? "Arriving now" : `${minutes} min away`);
       }
