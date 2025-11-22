@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "ZS Recovery",
+    "slug": "zs-recovery",
+    "version": "1.0.0",
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBvAAT57RX_2jNq5PN9h5HFhQPIWwaElEc"
+        }
+      },
+      "package": "com.zsrecovery.zsrecovery"
+    },
+    "ios": {
+      "bundleIdentifier": "com.zsrecovery.zsrecovery.ios",
+      "config": {
+        "googleMapsApiKey": "AIzaSyBMfhl1AinOoBQeig7dAPGh9is5QVHRvMg"
+      },
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ZS Recovery tracks your location while driving to update admin dashboard.",
+        "NSLocationWhenInUseUsageDescription": "ZS Recovery needs location to track tow trucks.",
+        "UIBackgroundModes": ["location"]
+      }
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b77d612e-bd72-4c29-b40f-d6ba86200373"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ]
+  }
+}
