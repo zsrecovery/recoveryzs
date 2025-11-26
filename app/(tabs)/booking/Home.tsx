@@ -12,6 +12,7 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../../firebaseConfig";
@@ -129,7 +130,6 @@ export default function HomeScreen() {
                 source={require("../../../assets/logo.png")}
                 style={styles.menuLogo}
               />
-
               <TouchableOpacity
                 style={[styles.menuItem, { backgroundColor: "#00C853" }]}
                 onPress={() => {
@@ -138,31 +138,6 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={styles.menuItemText}>🚗 Make a Booking</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.menuItem,
-                  { backgroundColor: driverAssigned ? "#FFEB3B" : "#888" },
-                ]}
-                onPress={() => {
-                  handleTrackTow();
-                  toggleMenu(false);
-                }}
-                disabled={!driverAssigned}
-              >
-                {loadingDriver ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.menuItemText,
-                      { color: driverAssigned ? "#2E7D32" : "#DDD" },
-                    ]}
-                  >
-                    {driverAssigned ? "📍 Track a Tow" : "🚧 Driver being assigned..."}
-                  </Text>
-                )}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -188,8 +163,35 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* Services Section (restored) */}
-        <View style={styles.content}>
+        {/* Track Tow Button (always visible if active booking) */}
+        {hasActiveBooking && (
+          <View style={styles.trackContainer}>
+            <TouchableOpacity
+              style={[
+                styles.trackButton,
+                { backgroundColor: driverAssigned ? "#FFEB3B" : "#888" },
+              ]}
+              onPress={handleTrackTow}
+              disabled={!driverAssigned || loadingDriver}
+            >
+              {loadingDriver ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text
+                  style={[
+                    styles.trackButtonText,
+                    { color: driverAssigned ? "#2E7D32" : "#DDD" },
+                  ]}
+                >
+                  {driverAssigned ? "📍 Track a Tow" : "🚧 Driver being assigned..."}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Services Section */}
+        <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.servicesHeader}>Our Services</Text>
 
           <View style={styles.serviceContainer}>
@@ -226,7 +228,7 @@ export default function HomeScreen() {
               Convenient fuel delivery straight to you when you need it most.
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </View>
     </ImageBackground>
   );
@@ -234,17 +236,23 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1, resizeMode: "cover" },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)", paddingHorizontal: 0, paddingTop: 0 },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" },
   header: { flexDirection: "row", alignItems: "center", backgroundColor: "#2E7D32", paddingTop: 50, paddingBottom: 15, paddingHorizontal: 20 },
   hamburgerContainer: { marginRight: 15 },
   hamburger: { color: "#FFEB3B", fontSize: 28 },
   tagline: { color: "#FFF", fontSize: 20, fontWeight: "bold", flexShrink: 1 },
+
   pressableOverlay: { position: "absolute", top: 0, left: SCREEN_WIDTH * 0.7, width: SCREEN_WIDTH * 0.3, height: "100%", backgroundColor: "rgba(0,0,0,0.5)" },
   menu: { position: "absolute", left: 0, top: 0, width: SCREEN_WIDTH * 0.7, height: "100%", backgroundColor: "#000", paddingTop: 60, paddingHorizontal: 10, zIndex: 10 },
   menuLogo: { width: 230, height: 200, resizeMode: "contain", alignSelf: "center", marginBottom: 5 },
   menuItem: { padding: 15, borderRadius: 10, marginBottom: 15, alignItems: "center" },
   menuItemText: { fontSize: 18, fontWeight: "bold", color: "#FFF" },
-  content: { marginTop: 20, marginBottom: 30 },
+
+  trackContainer: { alignItems: "center", marginVertical: 20 },
+  trackButton: { width: "90%", padding: 15, borderRadius: 10, alignItems: "center" },
+  trackButtonText: { fontSize: 18, fontWeight: "bold" },
+
+  content: { paddingBottom: 30 },
   servicesHeader: { color: "#FFF", fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
   serviceContainer: {
     backgroundColor: "#FFF",
