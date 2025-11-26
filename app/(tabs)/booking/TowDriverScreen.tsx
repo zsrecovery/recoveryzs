@@ -1,82 +1,105 @@
 // app/(tabs)/booking/TowDriverScreen.tsx
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
-import { Audio } from "expo-av"; // 🔊 NEW
+import { Audio, AVPlaybackStatus } from "expo-av";
 import {
   collection,
   doc,
-  setDoc,
   getDoc,
   onSnapshot,
   query,
   updateDoc,
   where,
+  setDoc,
 } from "firebase/firestore";
-import React, { useEffect, useState, useRef } from "react";
+import { signOut } from "firebase/auth";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
-  RefreshControl,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { db, auth } from "../../../firebaseConfig";
 import { LOCATION_TASK_NAME } from "../../backgroundTasks/locationTask";
-import { signOut } from "firebase/auth";
-import { useRouter } from "expo-router";
 
+// -------------------- TypeScript Types --------------------
+type Booking = {
+  id: string;
+  status: string;
+  service?: string;
+  name?: string;
+  fullPhone?: string;
+  pickup?: string;
+  dropoff?: string;
+  assignedDriverId?: string;
+};
+
+type Driver = {
+  id: string;
+  status: string;
+  currentBookingId?: string;
+  lastSeen?: any;
+  latitude?: number;
+  longitude?: number;
+};
+
+// -------------------- Component --------------------
 export default function TowDriverScreen() {
-  const [tracking, setTracking] = useState(false);
-  const [driver, setDriver] = useState<any>(null);
-  const [currentBooking, setCurrentBooking] = useState<any>(null);
-  const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
-  const [availableBookings, setAvailableBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const previousPendingCount = useRef(0); // 🔔 track new pending bookings
-  const soundRef = useRef<Audio.Sound | null>(null); // 🔊 sound memory
-
   const router = useRouter();
   const user = auth.currentUser;
   const driverId = user?.uid;
 
-  // 🔊 Load sound effect
-  const loadSound = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../../../assets/alert.mp3") // ADD a beep file into /assets
-      );
-      soundRef.current = sound;
-    } catch (e) {
-      console.log("Sound load error:", e);
-    }
-  };
+  const [driver, setDriver] = useState<Driver | null>(null);
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
+  const [assignedBookings, setAssignedBookings] = useState<Booking[]>([]);
+  const [availableBookings, setAvailableBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tracking, setTracking] = useState(false);
 
+  const previousPendingCount = useRef(0);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // ----------------- Load alert sound -----------------
   useEffect(() => {
+    let sound: Audio.Sound | null = null;
+
+    const loadSound = async () => {
+      try {
+        const { sound: s } = await Audio.Sound.createAsync(
+          require("../../../../assets/alert.mp3")
+        );
+        sound = s;
+        soundRef.current = s;
+      } catch (e) {
+        console.log("Sound load error:", e);
+      }
+    };
+
     loadSound();
+
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
+      if (sound) {
+        sound.unloadAsync().catch((err) => console.log("Sound unload error:", err));
       }
     };
   }, []);
 
-  // 🔊 Play alert sound
   const playAlertSound = async () => {
     try {
-      if (soundRef.current) {
-        await soundRef.current.replayAsync();
-      }
+      if (soundRef.current) await soundRef.current.replayAsync();
     } catch (e) {
       console.log("Sound play error:", e);
     }
   };
 
-  // 🔹 Initialize driver document
+  // ----------------- Initialize driver -----------------
   useEffect(() => {
     if (!driverId) return;
 
@@ -84,32 +107,35 @@ export default function TowDriverScreen() {
       try {
         await setDoc(
           doc(db, "drivers", driverId),
-          { status: "Available" },
+          { status: "Available", lastSeen: new Date() },
           { merge: true }
         );
 
         const driverRef = doc(db, "drivers", driverId);
         const unsub = onSnapshot(driverRef, async (snapshot) => {
-          const driverData = snapshot.data();
-          setDriver(driverData);
-          setLoading(false);
+          const data = snapshot.data() as Driver | undefined;
+          if (!data) return;
 
-          if (driverData?.currentBookingId) {
-            const bookingRef = doc(db, "bookings", driverData.currentBookingId);
-            const bookingSnap = await getDoc(bookingRef);
-            if (bookingSnap.exists())
-              setCurrentBooking({
-                id: bookingSnap.id,
-                ...bookingSnap.data(),
-              });
+          setDriver({ ...data, id: snapshot.id });
+
+          // Load current booking if assigned
+          if (data.currentBookingId) {
+            const bookingSnap = await getDoc(doc(db, "bookings", data.currentBookingId));
+            if (bookingSnap.exists()) {
+              setCurrentBooking({ id: bookingSnap.id, ...bookingSnap.data() } as Booking);
+            } else {
+              setCurrentBooking(null);
+            }
           } else {
             setCurrentBooking(null);
           }
+
+          setLoading(false);
         });
 
-        return () => unsub();
+        return unsub;
       } catch (err) {
-        console.error("Error initializing driver:", err);
+        console.error("Driver init error:", err);
         setLoading(false);
       }
     };
@@ -117,346 +143,209 @@ export default function TowDriverScreen() {
     initDriver();
   }, [driverId]);
 
-  // 🔹 Listen for pending bookings + alert sound
+  // ----------------- Pending bookings listener -----------------
   useEffect(() => {
-    const q = query(
-      collection(db, "bookings"),
-      where("status", "==", "pending"),
-      where("assignedDriverId", "==", "")
-    );
-
+    const q = query(collection(db, "bookings"), where("status", "==", "pending"));
     const unsub = onSnapshot(q, (snapshot) => {
-      const pending = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-
-      // 🔊 Play alert if new bookings were added
-      if (pending.length > previousPendingCount.current) {
-        playAlertSound();
-      }
-
+      const pending: Booking[] = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+      if (pending.length > previousPendingCount.current) playAlertSound();
       previousPendingCount.current = pending.length;
       setAvailableBookings(pending);
     });
-
     return () => unsub();
   }, []);
 
-  // 🔹 Listen for assigned bookings
+  // ----------------- Assigned bookings listener -----------------
   useEffect(() => {
     if (!driverId) return;
-
     const q = query(
       collection(db, "bookings"),
       where("assignedDriverId", "==", driverId),
       where("status", "in", ["assigned", "onRoute"])
     );
-
     const unsub = onSnapshot(q, (snapshot) => {
-      const assigned = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-
+      const assigned: Booking[] = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
       setAssignedBookings(assigned);
     });
-
     return () => unsub();
   }, [driverId]);
 
-  // 🔹 Refresh function
-  const onRefresh = async () => {
-    setRefreshing(true);
-
-    try {
-      previousPendingCount.current = availableBookings.length;
-    } catch {}
-
-    setTimeout(() => setRefreshing(false), 800);
-  };
-
-  // 🔹 Stop background tracking on unmount
-  useEffect(() => {
-    return () => {
-      stopBackgroundUpdates();
-    };
-  }, []);
-
+  // ----------------- Background location tracking -----------------
   const startBackgroundUpdates = async () => {
+    if (!driverId) return;
+
     const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "App requires location access.");
+    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+
+    if (status !== "granted" || bgStatus !== "granted") {
+      Alert.alert("Permission Denied", "Foreground and Background location required.");
       return;
     }
 
-    const { status: bgStatus } =
-      await Location.requestBackgroundPermissionsAsync();
-    if (bgStatus !== "granted") {
-      Alert.alert("Permission Denied", "Background location permission denied.");
-      return;
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+    if (!isRegistered) {
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Location.Accuracy.Highest,
+        distanceInterval: 5,
+        timeInterval: 5000,
+        showsBackgroundLocationIndicator: true,
+        pausesUpdatesAutomatically: false,
+        foregroundService: {
+          notificationTitle: "ZS Recovery Tracking",
+          notificationBody: "Location tracking is active.",
+        },
+      });
     }
 
-    try {
-      const isRegistered =
-        await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-      if (!isRegistered) {
-        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-          accuracy: Location.Accuracy.Highest,
-          distanceInterval: 5,
-          timeInterval: 5000,
-          showsBackgroundLocationIndicator: true,
-          pausesUpdatesAutomatically: false,
-          foregroundService: {
-            notificationTitle: "ZS Recovery Tracking",
-            notificationBody: "Location tracking is active.",
-          },
-        });
-      }
-      setTracking(true);
-    } catch (error) {
-      console.warn("Error starting background location task:", error);
-    }
+    setTracking(true);
   };
 
   const stopBackgroundUpdates = async () => {
-    try {
-      const isRegistered =
-        await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-      if (isRegistered)
-        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-    } catch (error) {
-      console.warn("Error stopping background location task:", error);
-    }
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+    if (isRegistered) await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
     setTracking(false);
   };
 
+  // ----------------- Logout -----------------
   const handleLogout = async () => {
     try {
       await stopBackgroundUpdates();
       await signOut(auth);
-      Alert.alert("Signed Out", "You’ve been logged out successfully.");
       router.replace("/(tabs)/booking");
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert("Error", "Could not log out. Please try again.");
+    } catch (err) {
+      console.error("Logout error:", err);
+      Alert.alert("Error", "Could not log out.");
     }
   };
 
+  // ----------------- Mark booking as completed -----------------
   const markAsCompleted = async (bookingId: string) => {
     if (!driverId) return;
-    try {
-      await updateDoc(doc(db, "bookings", bookingId), { status: "completed" });
-      await updateDoc(doc(db, "drivers", driverId), {
-        status: "Available",
-        currentBookingId: "",
-      });
-      Alert.alert("✅ Job Completed", "You are now available for new requests.");
-    } catch (err) {
-      console.error("Error marking job complete:", err);
-      Alert.alert("Error", "Could not mark job as completed.");
-    }
+    await updateDoc(doc(db, "bookings", bookingId), { status: "completed" });
+    await updateDoc(doc(db, "drivers", driverId), { status: "Available", currentBookingId: "" });
+    setCurrentBooking(null);
+    Alert.alert("✅ Job Completed", "You are now available.");
   };
 
+  // ----------------- Accept pending booking -----------------
   const acceptBooking = async (bookingId: string) => {
     if (!driverId) return;
-    try {
-      await updateDoc(doc(db, "bookings", bookingId), {
-        assignedDriverId: driverId,
-        status: "assigned",
-      });
-      await updateDoc(doc(db, "drivers", driverId), {
-        currentBookingId: bookingId,
-        status: "On Job",
-      });
-      Alert.alert("Success", "You have accepted the booking!");
-    } catch (err) {
-      console.error("Error accepting booking:", err);
-      Alert.alert("Error", "Could not accept booking.");
-    }
+    await updateDoc(doc(db, "bookings", bookingId), { assignedDriverId: driverId, status: "assigned" });
+    await updateDoc(doc(db, "drivers", driverId), { currentBookingId: bookingId, status: "On Job" });
+    Alert.alert("✅ Booking Accepted", "You can now start the job.");
+  };
+
+  // ----------------- Refresh -----------------
+  const onRefresh = () => {
+    setRefreshing(true);
+    previousPendingCount.current = availableBookings.length;
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text>Loading driver data...</Text>
+        <ActivityIndicator size="large" color="#00C853" />
+        <Text style={{ color: "#AAA", marginTop: 10 }}>Loading...</Text>
       </View>
     );
   }
 
+  // ----------------- Render -----------------
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <Text style={styles.header}>🚚 ZS Tow Driver Dashboard</Text>
 
-      <Text style={styles.status}>
-        Status:{" "}
+      <View style={styles.statusBox}>
+        <Text style={styles.statusLabel}>Driver Status</Text>
         <Text
-          style={{
-            color: driver?.status === "Available" ? "green" : "red",
-          }}
+          style={[
+            styles.statusValue,
+            { color: driver?.status === "Available" ? "#00C853" : "#FFC400" },
+          ]}
         >
           {driver?.status || "Unknown"}
         </Text>
-      </Text>
+      </View>
 
-      {/* Counts */}
-      <Text style={styles.countText}>
-        Pending: <Text style={{ color: "#E65100" }}>{availableBookings.length}</Text> | 
-        Assigned: <Text style={{ color: "#2E7D32" }}>{assignedBookings.length}</Text>
-      </Text>
+      <View style={styles.countsRow}>
+        <Text style={styles.countText}>
+          Pending: <Text style={{ color: "#FFC400" }}>{availableBookings.length}</Text>
+        </Text>
+        <Text style={styles.countText}>
+          Assigned: <Text style={{ color: "#00C853" }}>{assignedBookings.length}</Text>
+        </Text>
+      </View>
 
       <TouchableOpacity
         onPress={tracking ? stopBackgroundUpdates : startBackgroundUpdates}
-        style={[
-          styles.button,
-          tracking ? styles.stopButton : styles.startButton,
-        ]}
+        style={[styles.button, tracking ? styles.stopButton : styles.startButton]}
       >
-        <Text style={styles.buttonText}>
-          {tracking ? "Stop Tracking" : "Start Tracking"}
-        </Text>
+        <Text style={styles.buttonText}>{tracking ? "Stop Tracking" : "Start Tracking"}</Text>
       </TouchableOpacity>
 
-      {/* Assigned Bookings */}
-      {assignedBookings.length > 0 && (
-        <View style={styles.bookingSection}>
-          <Text style={styles.sectionHeader}>📌 Assigned Bookings</Text>
-          {assignedBookings.map((b) => (
-            <View key={b.id} style={styles.card}>
-              <Text>Customer: {b.customerName}</Text>
-              <Text>Service: {b.service}</Text>
-              <Text>Pickup: {b.pickup}</Text>
-              <Text>Dropoff: {b.dropoff}</Text>
-              <Text>Phone: {b.fullPhone}</Text>
-
-              <TouchableOpacity
-                style={[styles.button, styles.markCompletedButton]}
-                onPress={() => markAsCompleted(b.id)}
-              >
-                <Text style={[styles.buttonText, { color: "#2E7D32" }]}>
-                  ✅ Mark as Completed
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+      {/* Current Booking */}
+      {currentBooking && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔥 Current Active Booking</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardText}>Service: {currentBooking.service}</Text>
+            <Text style={styles.cardText}>Client: {currentBooking.name}</Text>
+            <Text style={styles.cardText}>Phone: {currentBooking.fullPhone}</Text>
+            <Text style={styles.cardText}>Pickup: {currentBooking.pickup || "Live Location"}</Text>
+            <Text style={styles.cardText}>Dropoff: {currentBooking.dropoff || "N/A"}</Text>
+            <TouchableOpacity style={[styles.button, styles.completeButton]} onPress={() => markAsCompleted(currentBooking.id)}>
+              <Text style={styles.buttonText}>Mark as Completed</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
       {/* Pending Bookings */}
-      {availableBookings.length > 0 && (
-        <View style={styles.bookingSection}>
-          <Text style={styles.sectionHeader}>📋 Pending Bookings</Text>
-          {availableBookings.map((b) => (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📋 Pending Bookings</Text>
+        {availableBookings.length === 0 ? (
+          <Text style={{ color: "#AAA" }}>No pending bookings.</Text>
+        ) : (
+          availableBookings.map((b) => (
             <View key={b.id} style={styles.card}>
-              <Text>Customer: {b.customerName}</Text>
-              <Text>Service: {b.service}</Text>
-              <Text>Pickup: {b.pickup}</Text>
-              <Text>Dropoff: {b.dropoff}</Text>
-
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#00C853", marginTop: 10 }]}
-                onPress={() => acceptBooking(b.id)}
-              >
-                <Text style={styles.buttonText}>Accept Booking</Text>
+              <Text style={styles.cardText}>Service: {b.service}</Text>
+              <Text style={styles.cardText}>Client: {b.name}</Text>
+              <Text style={styles.cardText}>Pickup: {b.pickup || "Live Location"}</Text>
+              <TouchableOpacity style={[styles.button, styles.acceptButton]} onPress={() => acceptBooking(b.id)}>
+                <Text style={styles.buttonText}>Accept</Text>
               </TouchableOpacity>
             </View>
-          ))}
-        </View>
-      )}
+          ))
+        )}
+      </View>
 
-      {assignedBookings.length === 0 && availableBookings.length === 0 && (
-        <Text style={{ color: "#777", marginTop: 20 }}>
-          No bookings available at the moment.
-        </Text>
-      )}
-
-      <TouchableOpacity
-        style={[styles.button, styles.logoutButton]}
-        onPress={handleLogout}
-      >
+      <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
         <Text style={styles.buttonText}>🚪 Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+// -------------------- Styles --------------------
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    backgroundColor: "#FFFDE7",
-    alignItems: "center",
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 10,
-  },
-  status: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  countText: {
-    fontSize: 16,
-    marginBottom: 10,
-    fontWeight: "600",
-  },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 10,
-  },
-  button: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  startButton: {
-    backgroundColor: "#2E7D32",
-  },
-  stopButton: {
-    backgroundColor: "#E53935",
-  },
-  markCompletedButton: {
-    backgroundColor: "#FFCC00",
-    marginTop: 10,
-  },
-  logoutButton: {
-    backgroundColor: "#555",
-    marginTop: 20,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    padding: 15,
-    width: "100%",
-    marginBottom: 15,
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  bookingSection: {
-    width: "100%",
-    marginTop: 20,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, padding: 15, backgroundColor: "#121212", paddingBottom: 50 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: { fontSize: 24, fontWeight: "bold", color: "#FFCC00", marginBottom: 15, textAlign: "center" },
+  statusBox: { backgroundColor: "#1E1E1E", padding: 12, borderRadius: 8, marginBottom: 12 },
+  statusLabel: { color: "#AAA" },
+  statusValue: { fontSize: 18, fontWeight: "bold" },
+  countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  countText: { fontSize: 16, fontWeight: "bold", color: "#FFF" },
+  button: { padding: 12, borderRadius: 8, marginVertical: 6, alignItems: "center" },
+  startButton: { backgroundColor: "#00C853" },
+  stopButton: { backgroundColor: "#FF5252" },
+  completeButton: { backgroundColor: "#FFC400" },
+  acceptButton: { backgroundColor: "#00C853" },
+  logoutButton: { backgroundColor: "#FF3D00" },
+  buttonText: { color: "#121212", fontWeight: "bold" },
+  section: { marginVertical: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#FFCC00", marginBottom: 6 },
+  card: { backgroundColor: "#1E1E1E", padding: 12, borderRadius: 8, marginVertical: 6 },
+  cardText: { color: "#FFF", marginBottom: 4 },
 });
