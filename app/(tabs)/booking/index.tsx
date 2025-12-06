@@ -13,7 +13,7 @@ import {
   Alert,
 } from "react-native";
 import { auth, db } from "../../../firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function Landing() {
@@ -21,61 +21,60 @@ export default function Landing() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
       if (user) {
         try {
-          // Get user type from Firestore
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            const userType = userData?.userType;
-
-            if (userType === "client") {
-              router.replace("/(tabs)/booking/Home");
-            } else if (userType === "driver") {
-              router.replace("/booking/TowDriverScreen");
-            } else {
-              Alert.alert(
-                "Error",
-                "User type is invalid. Please contact support."
-              );
-              await auth.signOut();
-              router.replace("/screens/Login");
-            }
-          } else {
-            // If no user document exists
+          if (!userSnap.exists()) {
             Alert.alert(
-              "Error",
+              "Profile Missing",
               "User profile not found. Please complete registration."
             );
             await auth.signOut();
             router.replace("/screens/SignUp");
+            return;
+          }
+
+          const userData = userSnap.data();
+          const userType = userData?.userType;
+
+          if (userType === "client") {
+            router.replace("/(tabs)/booking/Home");
+          } else if (userType === "driver") {
+            router.replace("/booking/TowDriverScreen");
+          } else {
+            Alert.alert(
+              "Invalid User",
+              "User type is invalid. Please contact support."
+            );
+            await auth.signOut();
+            router.replace("/screens/Login");
           }
         } catch (err) {
           console.error("Error fetching user type:", err);
           Alert.alert(
-            "Error",
+            "Login Error",
             "Something went wrong while logging in. Please try again."
           );
           await auth.signOut();
           router.replace("/screens/Login");
         }
       } else {
-        // Not logged in yet, stay on landing page
+        // User not logged in, show landing page
         setLoading(false);
       }
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#00C853" />
-        <Text style={{ marginTop: 10 }}>Checking authentication...</Text>
+        <Text style={styles.loadingText}>Checking authentication...</Text>
       </View>
     );
   }
@@ -92,9 +91,7 @@ export default function Landing() {
             style={styles.logo}
           />
 
-          <Text style={styles.tagline}>
-            Fast. Reliable. Professional Towing
-          </Text>
+          <Text style={styles.tagline}>Fast. Reliable. Professional Towing</Text>
 
           <TouchableOpacity
             onPress={() => router.push("/screens/SignUp")}
@@ -110,7 +107,9 @@ export default function Landing() {
             <Text style={[styles.buttonText, { color: "#2E7D32" }]}>🔑 Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push("/screens/ForgotPassword")}>
+          <TouchableOpacity
+            onPress={() => router.push("/screens/ForgotPassword")}
+          >
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
@@ -158,4 +157,5 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, fontSize: 16 },
 });

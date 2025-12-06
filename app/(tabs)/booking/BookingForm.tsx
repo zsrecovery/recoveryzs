@@ -1,143 +1,162 @@
-// BookingForm.tsx (Fully Fixed with Firestore Transaction)
-
+// app/(tabs)/booking/BookingForm.tsx
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { addDoc, collection, doc, getDocs, query, runTransaction, where } from "firebase/firestore";
-import { db } from "../../../firebaseConfig";
-import { router } from "expo-router";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { collection, addDoc } from "firebase/firestore";
+import * as firebase from "../../../firebaseConfig.js"; // Use exported db
 
-export default function BookingForm() {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [loading, setLoading] = useState(false);
+type BookingData = {
+  name: string;
+  phone: string;
+  service: string;
+  pickup?: string;
+  dropoff?: string;
+  vehicle?: string;
+};
 
-  const createBooking = async () => {
-    if (!name || !phone || !location) {
-      Alert.alert("Missing Fields", "Please fill in all fields.");
+const BookingForm = () => {
+  const router = useRouter();
+
+  const [name, setName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [service, setService] = useState<string>("");
+  const [pickup, setPickup] = useState<string>("");
+  const [dropoff, setDropoff] = useState<string>("");
+  const [vehicle, setVehicle] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleBooking = async () => {
+    if (!name || !phone || !service) {
+      Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
     setLoading(true);
 
+    const bookingData: BookingData = {
+      name,
+      phone,
+      service,
+      pickup: pickup || undefined,
+      dropoff: dropoff || undefined,
+      vehicle: vehicle || undefined,
+    };
+
     try {
-      // CREATE BOOKING FIRST
-      const bookingRef = await addDoc(collection(db, "bookings"), {
-        name,
-        phone,
-        location,
-        createdAt: Date.now(),
-        status: "requested",
-        assignedDriverId: null,
-      });
-
-      // RUN TRANSACTION FOR SAFE DRIVER ASSIGNMENT
-      const assignedDriverId = await runTransaction(db, async (trx) => {
-        const driversQuery = query(
-          collection(db, "drivers"),
-          where("status", "==", "Available")
-        );
-
-        const snap = await getDocs(driversQuery);
-        if (snap.empty) {
-          trx.update(doc(db, "bookings", bookingRef.id), {
-            status: "pending",
-          });
-          return null;
-        }
-
-        // RANDOM DRIVER
-        const docsArr = snap.docs;
-        const picked = docsArr[Math.floor(Math.random() * docsArr.length)];
-        const driverRef = doc(db, "drivers", picked.id);
-        const bookingDocRef = doc(db, "bookings", bookingRef.id);
-
-        trx.update(driverRef, {
-          status: "On Job",
-          currentBookingId: bookingRef.id,
-        });
-
-        trx.update(bookingDocRef, {
-          status: "assigned",
-          assignedDriverId: picked.id,
-        });
-
-        return picked.id;
-      });
-
-      // GO TO SUCCESS PAGE WITH DIRECT PARAMS
-      router.push({
-        pathname: "/(tabs)/booking/Success",
-        params: {
-          bookingId: bookingRef.id,
-          assignedDriverId: assignedDriverId ?? "none",
-        },
-      });
-    } catch (err: any) {
-      Alert.alert("Error", err.message);
+      const docRef = await addDoc(
+        collection(firebase.db, "bookings"),
+        bookingData as Record<string, unknown>
+      );
+      setLoading(false);
+      router.push(`/booking/success?bookingId=${docRef.id}`);
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Error", "Failed to create booking");
+      console.error(error);
     }
-
-    setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Request Tow Service</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.label}>Name</Text>
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={(text: string) => setName(text)}
+          placeholder="Enter your name"
+        />
 
-      <TextInput
-        placeholder="Full Name"
-        placeholderTextColor="#777"
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-      />
+        <Text style={styles.label}>Phone</Text>
+        <TextInput
+          style={styles.input}
+          value={phone}
+          onChangeText={(text: string) => setPhone(text)}
+          placeholder="Enter your phone number"
+          keyboardType="phone-pad"
+        />
 
-      <TextInput
-        placeholder="Phone Number"
-        placeholderTextColor="#777"
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
+        <Text style={styles.label}>Service</Text>
+        <TextInput
+          style={styles.input}
+          value={service}
+          onChangeText={(text: string) => setService(text)}
+          placeholder="Enter service"
+        />
 
-      <TextInput
-        placeholder="Your Location"
-        placeholderTextColor="#777"
-        style={styles.input}
-        value={location}
-        onChangeText={setLocation}
-      />
+        <Text style={styles.label}>Pickup (Optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={pickup}
+          onChangeText={(text: string) => setPickup(text)}
+          placeholder="Pickup location"
+        />
 
-      <TouchableOpacity
-        style={styles.btn}
-        onPress={createBooking}
-        disabled={loading}
-      >
-        <Text style={styles.btnText}>{loading ? "Submitting..." : "Submit"}</Text>
-      </TouchableOpacity>
-    </View>
+        <Text style={styles.label}>Dropoff (Optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={dropoff}
+          onChangeText={(text: string) => setDropoff(text)}
+          placeholder="Dropoff location"
+        />
+
+        <Text style={styles.label}>Vehicle (Optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={vehicle}
+          onChangeText={(text: string) => setVehicle(text)}
+          placeholder="Vehicle details"
+        />
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleBooking}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Book Now</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-}
+};
+
+export default BookingForm;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#000" },
-  heading: { fontSize: 24, color: "yellow", fontWeight: "bold", marginBottom: 20 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  scrollContainer: { padding: 20 },
+  label: { marginTop: 15, fontSize: 16, fontWeight: "600" },
   input: {
-    backgroundColor: "#111",
-    padding: 12,
-    color: "white",
-    borderColor: "green",
     borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 8,
-    marginVertical: 5,
+    padding: 10,
+    marginTop: 5,
   },
-  btn: {
+  button: {
     backgroundColor: "green",
     padding: 15,
     borderRadius: 8,
+    marginTop: 25,
     alignItems: "center",
-    marginTop: 15,
   },
-  btnText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
 });

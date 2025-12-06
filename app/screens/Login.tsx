@@ -13,12 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signInWithCredential,
-  PhoneAuthProvider,
-} from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signInWithCredential, PhoneAuthProvider, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
@@ -86,10 +81,7 @@ export default function Login() {
     if (!otp || !confirmationResult) return Alert.alert("Error", "Enter OTP first.");
     setLoading(true);
     try {
-      const credential = PhoneAuthProvider.credential(
-        confirmationResult.verificationId,
-        otp
-      );
+      const credential = PhoneAuthProvider.credential(confirmationResult.verificationId, otp);
       const userCredential = await signInWithCredential(auth, credential);
       const uid = userCredential.user.uid;
       const userSnap = await getDoc(doc(db, "users", uid));
@@ -113,7 +105,7 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#000" }}
+      style={{ flex: 1, backgroundColor: "#fff" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -121,7 +113,7 @@ export default function Login() {
 
         <Recaptcha ref={recaptchaVerifier} />
 
-        <View style={{ flexDirection: "row", marginBottom: 20 }}>
+        <View style={styles.toggleContainer}>
           <TouchableOpacity onPress={() => setLoginMethod("email")}>
             <Text style={[styles.toggleText, loginMethod === "email" && styles.activeToggle]}>Email</Text>
           </TouchableOpacity>
@@ -134,7 +126,7 @@ export default function Login() {
           <>
             <TextInput
               placeholder="Email"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={email}
               onChangeText={setEmail}
@@ -144,7 +136,7 @@ export default function Login() {
             <View style={styles.passwordContainer}>
               <TextInput
                 placeholder="Password"
-                placeholderTextColor="#ccc"
+                placeholderTextColor="#888"
                 style={styles.passwordInput}
                 value={password}
                 onChangeText={setPassword}
@@ -162,7 +154,7 @@ export default function Login() {
           <>
             <TextInput
               placeholder="Phone (+254...)"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
@@ -176,7 +168,7 @@ export default function Login() {
               <>
                 <TextInput
                   placeholder="Enter OTP"
-                  placeholderTextColor="#ccc"
+                  placeholderTextColor="#888"
                   style={styles.input}
                   value={otp}
                   onChangeText={setOtp}
@@ -191,8 +183,8 @@ export default function Login() {
         )}
 
         <TouchableOpacity onPress={() => router.push("/screens/SignUp")} style={{ marginTop: 20 }}>
-          <Text style={{ color: "#fff" }}>
-            Don’t have an account? <Text style={{ color: "#00C853", fontWeight: "bold" }}>Sign Up</Text>
+          <Text style={styles.switchText}>
+            Don’t have an account? <Text style={styles.switchLink}>Sign Up</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -208,6 +200,9 @@ const styles = StyleSheet.create({
   passwordInput: { flex: 1, color: "#000" },
   button: { width: "80%", height: 50, backgroundColor: "#00C853", borderRadius: 10, justifyContent: "center", alignItems: "center", marginTop: 5 },
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  toggleText: { color: "#ccc", fontSize: 18, fontWeight: "bold" },
+  toggleContainer: { flexDirection: "row", marginBottom: 20 },
+  toggleText: { color: "#888", fontSize: 18, fontWeight: "bold" },
   activeToggle: { color: "#00C853", textDecorationLine: "underline" },
+  switchText: { color: "#000", fontSize: 16 },
+  switchLink: { color: "#00C853", fontWeight: "bold" },
 });

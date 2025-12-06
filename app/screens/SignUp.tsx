@@ -110,7 +110,7 @@ export default function SignUp() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#000" }}
+      style={{ flex: 1, backgroundColor: "#fff" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -118,7 +118,7 @@ export default function SignUp() {
 
         <Recaptcha ref={recaptchaVerifier} />
 
-        <View style={{ flexDirection: "row", marginBottom: 20 }}>
+        <View style={styles.toggleContainer}>
           <TouchableOpacity onPress={() => setSignupMethod("email")}>
             <Text style={[styles.toggleText, signupMethod === "email" && styles.activeToggle]}>Email</Text>
           </TouchableOpacity>
@@ -131,14 +131,14 @@ export default function SignUp() {
           <>
             <TextInput
               placeholder="Name"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={name}
               onChangeText={setName}
             />
             <TextInput
               placeholder="Email"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={email}
               onChangeText={setEmail}
@@ -147,14 +147,14 @@ export default function SignUp() {
             />
             <TextInput
               placeholder="Password"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ alignSelf: "flex-end", marginBottom: 20 }}>
-              <Text style={{ color: "#00C853" }}>{showPassword ? "Hide" : "Show"}</Text>
+              <Text style={{ color: "#00C853", fontWeight: "bold" }}>{showPassword ? "Hide" : "Show"}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={handleEmailSignUp} disabled={loading}>
               {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Sign Up</Text>}
@@ -164,14 +164,14 @@ export default function SignUp() {
           <>
             <TextInput
               placeholder="Name"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={name}
               onChangeText={setName}
             />
             <TextInput
               placeholder="Phone (+254...)"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
@@ -185,7 +185,7 @@ export default function SignUp() {
               <>
                 <TextInput
                   placeholder="Enter OTP"
-                  placeholderTextColor="#ccc"
+                  placeholderTextColor="#888"
                   style={styles.input}
                   value={otp}
                   onChangeText={setOtp}
@@ -200,8 +200,8 @@ export default function SignUp() {
         )}
 
         <TouchableOpacity onPress={() => router.push("/screens/Login")} style={{ marginTop: 20 }}>
-          <Text style={{ color: "#fff" }}>
-            Already have an account? <Text style={{ color: "#00C853", fontWeight: "bold" }}>Login</Text>
+          <Text style={styles.switchText}>
+            Already have an account? <Text style={styles.switchLink}>Login</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -215,6 +215,9 @@ const styles = StyleSheet.create({
   input: { width: "80%", height: 50, backgroundColor: "#fff", borderWidth: 2, borderColor: "#FFEB3B", borderRadius: 10, paddingHorizontal: 15, color: "#000", marginBottom: 15 },
   button: { width: "80%", height: 50, backgroundColor: "#00C853", borderRadius: 10, justifyContent: "center", alignItems: "center", marginTop: 5 },
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  toggleText: { color: "#ccc", fontSize: 18, fontWeight: "bold" },
+  toggleContainer: { flexDirection: "row", marginBottom: 20 },
+  toggleText: { color: "#888", fontSize: 18, fontWeight: "bold" },
   activeToggle: { color: "#00C853", textDecorationLine: "underline" },
+  switchText: { color: "#000", fontSize: 16 },
+  switchLink: { color: "#00C853", fontWeight: "bold" },
 });

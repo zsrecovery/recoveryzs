@@ -1,64 +1,65 @@
-// app/backgroundTasks/locationTask.js
 import * as TaskManager from "expo-task-manager";
 import * as Location from "expo-location";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
-// 🔹 Must match the one used in TowDriverScreen
+// 🚨 TASK NAME: Must match the name used in startLocationUpdatesAsync
 export const LOCATION_TASK_NAME = "background-location-task";
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBgwRCkZsPUcv0x4cFZN-4T3DJNWOaVXbg",
-  authDomain: "zs-recovery.firebaseapp.com",
-  projectId: "zs-recovery",
-  storageBucket: "zs-recovery.appspot.com",
-  messagingSenderId: "439700460060",
-  appId: "1:439700460060:web:70a7bfd7932d97362305d9",
-};
+// ----------------------------------------------------------------
+// Firebase Initialization (Canvas Compliant)
+// Uses the global variable __firebase_config to initialize Firebase
+// ----------------------------------------------------------------
+const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Initialize Firebase
-let app, db;
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-} catch (err) {
-  console.log("Firebase already initialized");
-}
 
-// Define background task
+// ----------------------------------------------------------------
+// Define the background task that runs periodically to send location updates
+// ----------------------------------------------------------------
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
-    console.error("❌ Location task error:", error);
+    console.error("❌ Location Task Error:", error);
     return;
   }
+  
+  // 🚨 FIX: We remove the TypeScript 'as' assertion and use defensive runtime checks.
+  // Expo's background location task returns data with a 'locations' array.
+  if (!data || typeof data !== 'object' || !('locations' in data)) {
+      console.warn("Location Task received invalid or empty data payload.");
+      return;
+  }
+  
+  const locations = data.locations;
 
-  if (data) {
-    const { locations, driverId } = data;
-    const location = locations[0];
-    if (!location) return;
-
-    const { latitude, longitude } = location.coords;
+  if (Array.isArray(locations) && locations.length > 0) {
+    const latestLocation = locations[0];
+    // We assume the structure is correct based on the Expo API
+    const { latitude, longitude } = latestLocation.coords; 
+    
+    // Get driver ID from the current authenticated user context
+    const driverId = auth.currentUser?.uid;
 
     if (!driverId) {
-      console.log("⚠️ No driverId passed — skipping update");
+      console.warn("⚠️ Location Task: No authenticated user found, skipping update.");
       return;
     }
 
     try {
-      await setDoc(
-        doc(db, "drivers", driverId),
-        {
-          latitude,
-          longitude,
-          lastUpdated: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Update the driver's location in Firestore
+      const driverRef = doc(db, "drivers", driverId);
+      await updateDoc(driverRef, {
+        latitude: latitude,
+        longitude: longitude,
+        lastSeen: serverTimestamp(), // Use serverTimestamp for accuracy
+      });
+      // console.log(`📍 Updated driver ${driverId}: ${latitude}, ${longitude}`); 
 
-      console.log(`📍 Updated driver ${driverId}: ${latitude}, ${longitude}`);
     } catch (err) {
-      console.error("❌ Firestore write error:", err);
+      console.error("❌ Firestore write error in background task:", err);
     }
   }
 });

@@ -1,7 +1,7 @@
-// utils/firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 // 🔹 Your Firebase config (from Firebase Console)
 const firebaseConfig = {
@@ -19,6 +19,7 @@ const app = initializeApp(firebaseConfig);
 // ✅ Initialize services
 const db = getFirestore(app);
 const auth = getAuth(app);
+const functions = getFunctions(app);
 
 // ✅ Export them
-export { app, auth, db };
+export { app, auth, db, functions };
