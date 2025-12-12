@@ -43,7 +43,7 @@
     "firebase": "^12.5.0",
     "geolib": "^3.3.4",
     "haversine-distance": "^1.2.4",
-    "lucide-react": "^0.555.0",
+    "lucide-react-native": "^0.561.0",
     "nativewind": "^4.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
