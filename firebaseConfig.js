@@ -1,25 +1,18 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
 
-// 🔹 Your Firebase config (from Firebase Console)
 const firebaseConfig = {
   apiKey: "AIzaSyBgwRCkZsPUcv0x4cFZN-4T3DJNWOaVXbg",
   authDomain: "zs-recovery.firebaseapp.com",
   projectId: "zs-recovery",
-  storageBucket: "zs-recovery.appspot.com",
+  storageBucket: "zs-recovery.appspot.com", // FIXED
   messagingSenderId: "439700460060",
-  appId: "1:439700460060:web:70a7bfd7932d97362305d9"
+  appId: "1:439700460060:web:70a7bfd7932d97362305d9",
 };
 
-// 🔹 Initialize Firebase App
-const app = initializeApp(firebaseConfig);
+// Prevent duplicate initialization
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// ✅ Initialize services
-const db = getFirestore(app);
-const auth = getAuth(app);
-const functions = getFunctions(app);
-
-// ✅ Export them
-export { app, auth, db, functions };
+export const auth = getAuth(app);
+export const db = getFirestore(app);

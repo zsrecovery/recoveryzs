@@ -10,22 +10,22 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // ✅ Redirect if already logged in
+  // Redirect logged-in client
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.replace("/TowDriverScreen"); // Go to driver dashboard
+        router.replace("/(tabs)/booking/Home");
       }
     });
     return unsubscribe;
   }, []);
 
-  // ✅ Handle driver login
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing info", "Please enter both email and password.");
       return;
     }
+
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
@@ -36,7 +36,6 @@ export default function LoginScreen() {
     }
   };
 
-  // ✅ Handle password reset
   const handleForgotPassword = async () => {
     if (!email) {
       Alert.alert("Enter email", "Please enter your email first to reset password.");
@@ -44,7 +43,7 @@ export default function LoginScreen() {
     }
     try {
       await sendPasswordResetEmail(auth, email);
-      Alert.alert("Password Reset", "We’ve sent a password reset link to your email.");
+      Alert.alert("Password Reset", "We've sent a reset link to your email.");
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
@@ -52,7 +51,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Driver Login</Text>
+      <Text style={styles.title}>Client Login</Text>
 
       <TextInput
         placeholder="Email"
@@ -62,6 +61,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
       />
+
       <TextInput
         placeholder="Password"
         value={password}
@@ -70,12 +70,10 @@ export default function LoginScreen() {
         style={styles.input}
       />
 
-      {/* ✅ Login Button */}
       <TouchableOpacity onPress={handleLogin} style={styles.loginButton} disabled={loading}>
         <Text style={styles.loginText}>{loading ? "Logging in..." : "Log In"}</Text>
       </TouchableOpacity>
 
-      {/* ✅ Forgot Password Button */}
       <TouchableOpacity onPress={handleForgotPassword}>
         <Text style={styles.forgotText}>Forgot Password?</Text>
       </TouchableOpacity>
@@ -84,44 +82,10 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFDE7",
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 20,
-  },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#CCC",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-  },
-  loginButton: {
-    backgroundColor: "#2E7D32",
-    padding: 15,
-    borderRadius: 10,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 5,
-  },
-  loginText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  forgotText: {
-    marginTop: 15,
-    color: "#00796B",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFDE7", paddingHorizontal: 20 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#2E7D32", marginBottom: 20 },
+  input: { width: "100%", borderWidth: 1, borderColor: "#CCC", borderRadius: 10, padding: 12, marginBottom: 10 },
+  loginButton: { backgroundColor: "#2E7D32", padding: 15, borderRadius: 10, width: "100%", alignItems: "center", marginTop: 5 },
+  loginText: { color: "#FFF", fontWeight: "bold", fontSize: 16 },
+  forgotText: { marginTop: 15, color: "#00796B", fontWeight: "bold", fontSize: 14 },
 });

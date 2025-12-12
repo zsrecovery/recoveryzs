@@ -9,46 +9,56 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth, db } from "../../firebaseConfig";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import {
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const [userData, setUserData] = useState<any>({});
+  const [userData, setUserData] = useState<{ name?: string; userType?: string }>({});
+  const [totalBookings, setTotalBookings] = useState<number>(0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [loadingDriver, setLoadingDriver] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch user account details
+  // Fetch user info and total bookings count
+  const fetchData = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      // Fetch user info
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) setUserData(userSnap.data() as { name?: string; userType?: string });
+
+      // Fetch total bookings count
+      const bookingsQuery = query(collection(db, "bookings"), where("userId", "==", user.uid));
+      const snapshot = await getDocs(bookingsQuery);
+      setTotalBookings(snapshot.size);
+    } catch (err: any) {
+      console.error("Error fetching data:", err);
+      Alert.alert("Error", err.message || "Failed to fetch data");
+    }
+  };
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      try {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setUserData(userSnap.data());
-        }
-      } catch (err) {
-        console.error("Error fetching user data:", err);
-      }
-    };
-    fetchUserData();
+    fetchData();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) {
@@ -81,16 +91,10 @@ export default function SettingsScreen() {
 
     try {
       setLoadingDriver(true);
-
       const userRef = doc(db, "users", user.uid);
-
-      // Update userType to driver in Firestore
-      await updateDoc(userRef, {
-        userType: "driver",
-      });
-
+      await updateDoc(userRef, { userType: "driver" });
       Alert.alert("Success", "You are now registered as a driver!");
-      setUserData((prev: any) => ({ ...prev, userType: "driver" }));
+      setUserData(prev => ({ ...prev, userType: "driver" }));
     } catch (err: any) {
       console.error(err);
       Alert.alert("Error", err.message || "Failed to become driver.");
@@ -100,19 +104,20 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.push("/(tabs)/booking/Home")}
-      >
-        <Text style={styles.backButtonText}>← Back to Home</Text>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.push("/Dashboard")}>
+        <Ionicons name="arrow-back" size={18} color="#00C853" />
+        <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
       {/* Header */}
       <Text style={styles.header}>Account Details</Text>
 
-      {/* Account Details Section */}
+      {/* User Info Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Your Information</Text>
         <Text style={styles.label}>Full Name:</Text>
@@ -123,13 +128,14 @@ export default function SettingsScreen() {
 
         <Text style={styles.label}>Account Type:</Text>
         <Text style={styles.value}>{userData.userType || "client"}</Text>
+
+        <Text style={styles.label}>Total Bookings:</Text>
+        <Text style={styles.value}>{totalBookings}</Text>
       </View>
 
       {/* Change Password Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Change Password</Text>
-
-        {/* Current Password */}
         <View style={styles.passwordInputContainer}>
           <TextInput
             style={styles.inputPassword}
@@ -144,13 +150,12 @@ export default function SettingsScreen() {
           >
             <MaterialCommunityIcons
               name={showCurrentPassword ? "eye-off" : "eye"}
-              size={24}
+              size={18}
               color="#555"
             />
           </TouchableOpacity>
         </View>
 
-        {/* New Password */}
         <View style={styles.passwordInputContainer}>
           <TextInput
             style={styles.inputPassword}
@@ -165,7 +170,7 @@ export default function SettingsScreen() {
           >
             <MaterialCommunityIcons
               name={showNewPassword ? "eye-off" : "eye"}
-              size={24}
+              size={18}
               color="#555"
             />
           </TouchableOpacity>
@@ -214,79 +219,26 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: "#F5F5F5",
-    flexGrow: 1,
-  },
-  backButton: {
-    marginBottom: 15,
-  },
-  backButtonText: {
-    color: "#00C853",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  header: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#2E7D32",
-    textAlign: "center",
-  },
+  container: { padding: 12, backgroundColor: "#F5F5F5", flexGrow: 1 },
+  backButton: { flexDirection: "row", alignItems: "center", marginTop: 70, marginBottom: 20, paddingLeft: 5 },
+  backButtonText: { color: "#010904ff", fontSize: 20, fontWeight: "bold", marginLeft: 6 },
+  header: { fontSize: 20, fontWeight: "bold", marginBottom: 12, color: "#2E7D32", textAlign: "center" },
   section: {
-    marginBottom: 30,
+    marginBottom: 15,
     backgroundColor: "#FFF",
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#00C853",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 10,
-  },
-  value: {
-    fontSize: 16,
-    color: "#555",
-    marginTop: 2,
-  },
-  passwordInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  inputPassword: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#CCC",
-    borderRadius: 8,
     padding: 10,
+    borderRadius: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  eyeIcon: {
-    position: "absolute",
-    right: 10,
-  },
-  button: {
-    backgroundColor: "#00C853",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 15,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 6, color: "#00C853" },
+  label: { fontSize: 12, fontWeight: "bold", color: "#333", marginTop: 6 },
+  value: { fontSize: 13, color: "#555", marginTop: 2 },
+  passwordInputContainer: { flexDirection: "row", alignItems: "center", marginTop: 6 },
+  inputPassword: { flex: 1, borderWidth: 1, borderColor: "#CCC", borderRadius: 5, padding: 6, fontSize: 13 },
+  eyeIcon: { position: "absolute", right: 6 },
+  button: { backgroundColor: "#00C853", padding: 10, borderRadius: 6, marginTop: 10, alignItems: "center" },
+  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 13 },
 });

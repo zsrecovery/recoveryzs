@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, Animated, Alert } from "reac
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "../../../firebaseConfig";
+import { db } from "../../firebaseConfig";
 
 type LatLng = { latitude: number; longitude: number };
 type BookingData = {

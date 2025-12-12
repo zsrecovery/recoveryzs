@@ -26,9 +26,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 // Assuming the user's firebase config is imported correctly
-import { db, auth } from "../../../firebaseConfig";
+import { db, auth } from "../../firebaseConfig";
 // Import the location task definition
-import { LOCATION_TASK_NAME } from "../../backgroundTasks/locationTask";
+import { LOCATION_TASK_NAME } from "../backgroundTasks/locationTask";
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 // -------------------- Theme Colors --------------------

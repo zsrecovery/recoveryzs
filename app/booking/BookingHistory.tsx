@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { auth, db } from "../../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 import { collection, doc, onSnapshot, query, where, getDoc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 

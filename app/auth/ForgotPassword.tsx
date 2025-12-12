@@ -30,7 +30,7 @@ export default function ForgotPassword() {
       Alert.alert(
         "Success",
         "Password reset email sent! Check your inbox.",
-        [{ text: "OK", onPress: () => router.push("/screens/Login") }]
+        [{ text: "OK", onPress: () => router.replace("/") }]
       );
     } catch (error: any) {
       console.error(error);

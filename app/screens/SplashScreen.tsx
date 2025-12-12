@@ -1,6 +1,5 @@
-// app/SplashScreen.tsx
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, Animated, StyleSheet, Image, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function SplashScreen() {
@@ -13,6 +12,12 @@ export default function SplashScreen() {
       duration: 1500,
       useNativeDriver: true,
     }).start();
+
+    const timeout = setTimeout(() => {
+      router.replace('/app/index'); // go to landing/index after splash
+    }, 2000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
@@ -25,22 +30,12 @@ export default function SplashScreen() {
       <Animated.Text style={[styles.tagline, { opacity: fadeAnim }]}>
         Fast • Reliable • Professional Towing
       </Animated.Text>
-
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/auth/LoginScreen')}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={[styles.button, { marginTop: 10 }]} onPress={() => router.push('/auth/SignUpScreen')}>
-        <Text style={styles.buttonText}>Sign Up</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
   logo: { width: 200, height: 200, marginBottom: 20 },
-  tagline: { color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 40 },
-  button: { backgroundColor: '#00C853', paddingVertical: 12, paddingHorizontal: 50, borderRadius: 25 },
-  buttonText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+  tagline: { color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
 });
