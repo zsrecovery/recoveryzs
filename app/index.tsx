@@ -1,5 +1,4 @@
-// app/index.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,10 +9,33 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { auth } from "../firebaseConfig"; // make sure you import your Firebase auth
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Landing() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // loading state to wait for auth check
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If user is logged in, redirect to your dashboard/home
+        router.replace("/dashboard"); // change to your logged-in route
+      } else {
+        setLoading(false); // allow landing page to render
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 18, fontWeight: "bold", color: "#FFF" }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>

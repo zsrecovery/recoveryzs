@@ -9,8 +9,10 @@ export default function DrawerNavigator() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      Alert.alert("Logged out", "You have been logged out.");
       router.replace("/");
+      setTimeout(() => {
+      Alert.alert("Logged out", "You have been logged out.");
+      }, 300)
     } catch (err: any) {
       Alert.alert("Logout failed", err.message);
     }
@@ -46,8 +48,8 @@ export default function DrawerNavigator() {
           <Text style={styles.menuText}>⚙️ Settings</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.menuBtn, { backgroundColor: "#FF3333" }]} onPress={() => router.replace("/index")}>
-          <Text style={styles.menuText}>🚪 Logout</Text>
+        <TouchableOpacity style={[styles.menuBtn, { backgroundColor: "#FF3333" }]} onPress={() => router.replace("./")}>
+          <Text style={styles.menuText}>🚪 Sign Out</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -60,8 +62,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    width: 180,
-    height: 160,
+    width: 260,
+    height: 240,
     marginBottom: 10,
   },
   company: {

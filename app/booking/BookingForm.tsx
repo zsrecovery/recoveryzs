@@ -91,7 +91,6 @@ const BookingForm = () => {
       }
     }
 
-    // ✅ UPDATED: ADDED userId
     const bookingData: BookingData & { userId: string } = {
       name,
       phone,
@@ -100,7 +99,7 @@ const BookingForm = () => {
       ...(dropoff ? { dropoff } : {}),
       ...(vehicle ? { vehicle } : {}),
       bookingDate: serverTimestamp(),
-      userId: auth.currentUser?.uid || "unknown-user", // ADDED
+      userId: auth.currentUser?.uid || "unknown-user",
     };
 
     try {
@@ -153,12 +152,23 @@ const BookingForm = () => {
       >
         <View style={styles.overlay}>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
+
+            {/* Back button */}
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => router.push("/Dashboard")}
             >
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
+
+            {/* INSERTED IMAGE */}
+            <View style={styles.topImageWrapper}>
+              <ImageBackground
+                source={require("../../assets/24hrbanner.png")}
+                style={styles.topImage}
+                resizeMode="contain"
+              />
+            </View>
 
             <Text style={styles.caption}>Stranded? We’ve Got You Covered!</Text>
 
@@ -181,7 +191,7 @@ const BookingForm = () => {
 
             <Text style={styles.label}>Service</Text>
             <View style={styles.pickerContainer}>
-              <Picker selectedValue={service} onValueChange={(itemValue) => setService(itemValue)}>
+              <Picker selectedValue={service} onValueChange={setService}>
                 <Picker.Item label="Select a service" value="" />
                 {services.map((s) => (
                   <Picker.Item key={s} label={s} value={s} />
@@ -198,6 +208,7 @@ const BookingForm = () => {
                   onChangeText={setPickup}
                   placeholder="Pickup location"
                 />
+
                 <Text style={styles.label}>Dropoff Location</Text>
                 <TextInput
                   style={styles.input}
@@ -224,6 +235,7 @@ const BookingForm = () => {
             <TouchableOpacity onPress={showPicker} style={styles.dateButton}>
               <Text style={styles.dateButtonText}>{date.toDateString()}</Text>
             </TouchableOpacity>
+
             {showDatePicker && (
               <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} />
             )}
@@ -231,6 +243,7 @@ const BookingForm = () => {
             <TouchableOpacity style={styles.button} onPress={handleBooking} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Book Now</Text>}
             </TouchableOpacity>
+
           </ScrollView>
         </View>
       </ImageBackground>
@@ -240,6 +253,10 @@ const BookingForm = () => {
 
 export default BookingForm;
 
+
+/* ---------------------------------------------------------
+   UPDATED STYLES (Image styles added only, nothing removed)
+----------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { flex: 1 },
@@ -251,14 +268,22 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  backButton: {
-    marginTop: 60,
-    marginBottom: 10,
-  },
+  backButton: { marginTop: 60, marginBottom: 10 },
   backButtonText: {
     color: "#00C853",
     fontSize: 15,
     fontWeight: "700",
+  },
+
+  /* NEW IMAGE WRAPPER + IMAGE STYLES */
+  topImageWrapper: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  topImage: {
+    width: "95%",
+    height: 120,
   },
 
   caption: {

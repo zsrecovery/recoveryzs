@@ -81,6 +81,16 @@ export default function SignUp() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+  style={{ marginBottom: 20, flexDirection: "row", alignItems: "center" }}
+  onPress={() => router.replace("/Dashboard")} // absolute route to landing page
+>
+  <Ionicons name="arrow-back" size={24} color="#2E7D32" />
+  <Text style={{ marginLeft: 8, fontSize: 16, color: "#2E7D32", fontWeight: "600" }}>
+    Back
+  </Text>
+</TouchableOpacity>
+
       <Text style={styles.title}>Create Account</Text>
 
       <TextInput

@@ -14,6 +14,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 } from "firebase/auth";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -58,7 +59,17 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Client Login</Text>
+      <TouchableOpacity
+  style={{ marginBottom: 20, flexDirection: "row", alignItems: "center" }}
+  onPress={() => router.replace("/")} // navigate to Dashboard
+>
+  <Ionicons name="arrow-back" size={24} color="#2E7D32" />
+  <Text style={{ marginLeft: 8, fontSize: 16, color: "#2E7D32", fontWeight: "600" }}>
+    Back
+  </Text>
+</TouchableOpacity>
+
+      <Text style={styles.title}>Log in</Text>
 
       {/* Email */}
       <TextInput
@@ -99,7 +110,7 @@ export default function LoginScreen() {
           {loading ? "Please wait..." : "Log In"}
         </Text>
       </TouchableOpacity>
-
+      
       {/* Forgot Password */}
       <TouchableOpacity onPress={handleForgot}>
         <Text style={styles.forgot}>Forgot Password?</Text>
