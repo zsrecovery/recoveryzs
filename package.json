@@ -40,6 +40,7 @@
     "expo-system-ui": "~6.0.8",
     "expo-task-manager": "^14.0.8",
     "expo-web-browser": "~15.0.9",
+    "exponential-backoff": "^3.1.3",
     "firebase": "^12.5.0",
     "geolib": "^3.3.4",
     "haversine-distance": "^1.2.4",
