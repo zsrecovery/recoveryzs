@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "439700460060",
+    "project_id": "zs-recovery",
+    "storage_bucket": "zs-recovery.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439700460060:android:aeceaf94386ac65a2305d9",
+        "android_client_info": {
+          "package_name": "com.zsrecovery.zsrecovery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXK_sV6N5Jvu07hRDQDt4BAMBtKpurOVI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -48,7 +48,7 @@ export default function DrawerNavigator() {
           <Text style={styles.menuText}>⚙️ Settings</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.menuBtn, { backgroundColor: "#FF3333" }]} onPress={() => router.replace("./")}>
+        <TouchableOpacity style={[styles.menuBtn, { backgroundColor: "#FF3333" }]} onPress={() => router.push("/auth/Logout")}>
           <Text style={styles.menuText}>🚪 Sign Out</Text>
         </TouchableOpacity>
       </View>

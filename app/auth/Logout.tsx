@@ -16,7 +16,7 @@ export default function LogoutScreen() {
             text: 'OK',
             onPress: () => {
               // Always go to the root index page
-              router.replace('/index'); 
+              router.replace('/'); 
             },
           },
         ]);

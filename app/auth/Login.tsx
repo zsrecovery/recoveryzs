@@ -1,19 +1,8 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  StyleSheet
-} from "react-native";
+import {  View,  Text,  TextInput,  TouchableOpacity, Alert,  StyleSheet} from "react-native";
 import { useRouter } from "expo-router";
 import { auth } from "@/firebaseConfig";
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail
-} from "firebase/auth";
+import {  onAuthStateChanged,  signInWithEmailAndPassword,  sendPasswordResetEmail } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
@@ -27,7 +16,7 @@ export default function LoginScreen() {
   // Auto-login if user already signed in
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/app/Dashboard");
+      if (user) router.replace("/Dashboard");
     });
     return unsub;
   }, []);
