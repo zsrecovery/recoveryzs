@@ -3,6 +3,7 @@
     "name": "ZS Recovery",
     "slug": "zs-recovery",
     "version": "1.0.0",
+    "scheme": "zsrecoverymobile",
     "android": {
       "googleServicesFile": "./google-services.json",
       "permissions": [
@@ -42,7 +43,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ]
   }
 }
+
