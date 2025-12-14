@@ -48,7 +48,7 @@ export default function Landing() {
             source={require("../assets/logo.png")}
             style={styles.logo}
           />
-          <Text style={styles.tagline}>Fast. Reliable. Professional Towing</Text>
+          <Text style={styles.tagline}>Fast. Reliable. Professional Vehicle Rescue.</Text>
 
           {/* Sign Up Button */}
           <TouchableOpacity
@@ -60,7 +60,7 @@ export default function Landing() {
 
           {/* Login Button */}
           <TouchableOpacity
-            onPress={() => router.push("/auth/Login")}
+            onPress={() => router.push("/auth/LoginScreen")}
             style={[styles.button, { backgroundColor: "#FFEB3B" }]}
           >
             <Text style={[styles.buttonText, { color: "#2E7D32" }]}>🔑 Login</Text>

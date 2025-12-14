@@ -164,7 +164,7 @@ const BookingForm = () => {
             {/* INSERTED IMAGE */}
             <View style={styles.topImageWrapper}>
               <ImageBackground
-                source={require("../../assets/24hrbanner.png")}
+                source={require("../../assets/bwtowtruck.png")}
                 style={styles.topImage}
                 resizeMode="contain"
               />
