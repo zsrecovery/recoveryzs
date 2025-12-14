@@ -51,11 +51,11 @@ export default function DrawerOverlay() {
                 </View>
 
                 {/* Drawer Buttons */}
-                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/Dashboard")}>
+                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/dashboard")}>
                   <Text style={styles.menuText}>🏠 Home</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/booking/BookingForm")}>
+                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/booking/bookingForm")}>
                   <Text style={styles.menuText}>🛠 Request Service</Text>
                 </TouchableOpacity>
 
@@ -63,7 +63,7 @@ export default function DrawerOverlay() {
                   <Text style={styles.menuText}>📄 View Bookings</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/screens/Settings")}>
+                <TouchableOpacity style={styles.menuBtn} onPress={() => navigateAndClose("/screens/settings")}>
                   <Text style={styles.menuText}>⚙️ Settings</Text>
                 </TouchableOpacity>
 
