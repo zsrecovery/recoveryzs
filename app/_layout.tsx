@@ -2,19 +2,19 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
 import DrawerNavigator from "./DrawerNavigator";
-import GlobalErrorBoundary from './GlobalErrorBoundary'; // Import the new component
-import { GlobalProvider } from './../GlobalContext';     // Import your existing context
+import GlobalErrorBoundary from './GlobalErrorBoundary'; 
+import { GlobalProvider } from './../GlobalContext'; 
 export default function RootLayout() {
   return (
-    <GlobalErrorBoundary> // 1. Catch any fatal errors that occur anywhere
-      <GlobalProvider>      // 2. Provide data context to all children
+    <GlobalErrorBoundary> 
+      <GlobalProvider>
     <Drawer
-      drawerContent={() => <DrawerNavigator />} // no props passed
+      drawerContent={() => <DrawerNavigator />}
       screenOptions={{
         drawerStyle: { backgroundColor: "#111", width: 250 },
         drawerActiveTintColor: "#00FF7F",
-        drawerInactiveTintColor: "#fff",
-        headerShown: false, // important: disables default drawer header
+        drawerInactiveTintColor: "#9c8b8bff",
+        headerShown: false,
       }}
     />
     </GlobalProvider>

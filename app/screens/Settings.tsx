@@ -17,7 +17,7 @@ import { doc, getDoc, collection, query, where, getDocs, updateDoc } from "fireb
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 
-export default function SettingsScreen() {
+export default function Settings() {
   const router = useRouter();
   const [userData, setUserData] = useState<{ name?: string; userType?: string }>({});
   const [totalBookings, setTotalBookings] = useState<number>(0);
@@ -32,7 +32,12 @@ export default function SettingsScreen() {
   // Fetch user info and total bookings count
   const fetchData = async () => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+  Alert.alert("Session expired", "Please log in again.");
+  router.replace("/");
+  return;
+}
+
 
     try {
       // Fetch user info

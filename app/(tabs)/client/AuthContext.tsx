@@ -50,10 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []); 
 
   return (
-    // Share the current user data with the rest of the app
+    <>
+    {/* Share the current user data with the rest of the app */}
     <AuthContext.Provider value={{ user, isLoading, userRole, refreshAuthToken }}>
       {children}
     </AuthContext.Provider>
+    </>
   );
 }
 

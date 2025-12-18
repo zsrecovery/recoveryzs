@@ -11,12 +11,12 @@ export function ExternalLink({ href, ...rest }: Props) {
       {...rest}
       href={href}
       onPress={async (event) => {
-        // Check if on a native platform (Android/iOS) AND not in the Web environment.
+       {/* Check if on a native platform (Android/iOS) AND not in the Web environment.*/}
         if (Platform.OS !== 'web') {
-          // Prevent Expo Router's default linking behavior
+          {/* Prevent Expo Router's default linking behavior */}
           event.preventDefault();
 
-          // --- CRASH FIX: Use safer Linking.openURL instead of expo-web-browser ---
+          {/* CRASH FIX: Use safer Linking.openURL instead of expo-web-browser --- */}
           try {
             const supported = await Linking.canOpenURL(href);
             if (supported) {
@@ -27,7 +27,7 @@ export function ExternalLink({ href, ...rest }: Props) {
           } catch (error) {
             console.error('Failed to open URL using Linking:', error);
           }
-          // -----------------------------------------------------------------------
+         {/* ----------------------------------------------------------------------- */}
         }
       }}
     />

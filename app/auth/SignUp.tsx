@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
-    paddingRight: 45, // leave space for the eye
+    paddingRight: 45, 
     borderColor: "#BDBDBD",
     backgroundColor: "#FFF",
   },
